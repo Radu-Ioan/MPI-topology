@@ -7,6 +7,9 @@ comp_tests=0
 invalid_comm=0
 bonus=0
 
+# in caz ca se schimba numele executabilului
+TEMA3=tema3
+
 # afiseaza scorul final
 function show_score {
 	local invalid=0
@@ -120,7 +123,7 @@ function check_bonus {
 	local count=0
 	local good=0
 
-	run_test "mpirun --oversubscribe -np $procs ./tema3 $N 1"
+	run_test "mpirun --oversubscribe -np $procs ./$(TEMA3) $N 1"
 
 	# verificare topologie
 	procs=$(($procs-1))
@@ -182,13 +185,13 @@ then
 fi
 
 cd $folder
-rm -rf tema3
+rm -rf $(TEMA3)
 
 # se compileaza tema
 make clean
 make build
 
-if [ ! -f tema3 ]
+if [ ! -f $(TEMA3) ]
 then
     echo "E: Nu s-a putut compila tema"
     show_score
@@ -206,7 +209,7 @@ do
 	procs=`sed '1q;d' inputs.txt`
 	N=`sed '2q;d' inputs.txt`
 
-	run_test "mpirun --oversubscribe -np $procs ./tema3 $N 0"
+	run_test "mpirun --oversubscribe -np $procs ./$(TEMA3) $N 0"
 
 	# verificare topologie
 	check_topology $procs
