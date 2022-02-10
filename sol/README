@@ -1,0 +1,109 @@
+336CA Zamfirescu Radu Ioan
+
+processing/process.[cpp|h] -> atribute comune pentru ambele feluri de procese
+                                (atat coordonatori cat si workeri)
+processing/coordinator.[cpp|h] -> fisierele pentru procesele coordonator
+                                    (0, 1, 2)
+processing/worker.[cpp|h] -> fisierele pentru workeri
+
+
+Pentru etapa 1, fiecare proces coordonator citeste din fisier clusterul sau,
+iar topologia se afla dupa urmatorul protocol:
+    - in cazul normal (fara bonus), fiecare coordonator isi trimite clusterul
+     celor 2 vecini, apoi primeste de la cei 2 celelalte clustere;
+     In continuare, trimite workerilor sai topologia aflata, nu inainte de a
+     afisa la output ca o stie. Dupa ce workerii o primesc, afiseaza si ei.
+
+    - in cazul pentru bonus, 2 e punctul de legatura intre 0 si 1. In
+     protocolul folosit, sunt folosite 2 etape: prima data 0 si 1 trimit in
+     paralel clusterele lor lui 2, iar acesta doar asteapta sa le primeasca
+     (dupa ordinea din cod, mai intai de la 0, apoi de la 1)
+     (se foloseste functia Coordinator::send_cluster_to_leaders_weak_edge()).
+
+     In faza a doua, 2 trimite clusterul sau catre 0 si catre 1, iar acestea
+     se asteapta sa receptioneze. (e vorba de functia
+     Coordinator::receive_cluster_from_leaders_weak_edge()).
+
+    In ambele situatii (cu sau fara bonus) trimiterea topologiei catre workeri
+    se executa la fel (Coordinator::send_topology_into_cluster()).
+
+    [OBS: La aceasta etapa cu bonus (stabilirea topologiei), nu sunt cele mai
+    sugestive nume pentru functiile cu weak_edge la final, relativ la procesul
+    2, dar am preferat sa las asa ca sa se vada simetria intre ce trebuie sa
+    faca 2 ca punct de articulatie si ceilalti. Las un desen mic pentru aceasta
+    impartire in 2 etape cu aceste functii:
+    I   0 ->  2  <- 1
+    II  0 <-  2  -> 1]
+
+Pentru etapa 2:
+    0 genereaza arrayul, trimite datele pentru 1 lui 1, si cele pentru 2 lui 2.
+    1 si 2 le primesc si le redirectioneaza catre clusterele lor pentru a fi
+    procesate [dependent_process::forward_stuff_to_workers()]
+    Mai departe tot 1 si 2 asteapta rezultatele din cluster si dupa ce le
+    primesc pe toate, se apuca sa le trimita catre 0.
+        [dependent_process::receive_and_send_results_to_initiator()]
+    0 primeste rezultate mai intai de la 1, apoi de la 2, apoi de la clusterul
+    sau.
+        [initiator_process::receive_results_from_workers()]
+    Ultimul pas e sa afiseze vectorul obtinut dupa calcule.
+
+Pentru etapa 2 cu bonus:
+    0 ii trimite lui 2 datele atribuite lui 1;
+    0 ii trimite lui 2 datele atribuite lui 2;
+        [se foloseste initiator_process::bad_link::send_stuff_to_leaders() ]
+
+    Dupa aceea, 0 trimite datele necesare workerilor sai
+        [initiator_process::send_stuff_to_workers()]
+
+    2 primeste calculele pentru 1 si i le trimite lui 1;
+    De asemenea, primeste datele pentru clusterul sau si le trimite direct
+    la workeri;
+        [apeleaza dependent_process::bad_link::pivot::forward_data() ]
+
+    Mai departe, 1 da de lucru workerilor sai
+        [apeleaza dependent_process::bad_link::waiting_process
+            ::get_data_and_send_it_to_workers()]
+    apoi preia rezultatele dupa ce workerii termina si le directioneaza catre 2
+        [apeleaza dependent_process::bad_link::waiting_process
+            ::send_back_results() ]
+
+    2 primeste rezultatele lui 1 si le trimite la 0
+    Dupa, primeste calculele facute de clusterul sau si le trimite tot la 0
+
+    0 stie protocolul: primeste de la 2 mai intai calculele facute de 1, apoi
+    pe cele facute de 2.
+    In continuare, primeste si ce au calculat workerii sai. Toate calculele
+    primite le suprascrie direct in array.
+
+
+
+La etapa a 2-a, n-am mai pus functiile in structura de coordonator,
+intrucat cerintele nu mai erau aceleasi pentru fiecare proces.
+Am preferat sa impart in namespace-uri, mai ales pentru etapa de bonus.
+Pentru asta am folosit cele 2 functii cu rol similar:
+initiator_process::start_calculation() si
+dependent_process::forward_data()
+
+
+
+Cateva observatii:
+
+Cunoasterea initiala a dimensiunii vectorului doar de catre procesul 0 e
+practic imposibil de realizat din moment ce toate procesele ruleaza binarul de
+tema3 care primeste ca argument dimensiunea vectorului.
+
+Am ales sa fac 2 foruri in
+    dependent_process::receive_and_send_results_to_initiator() pentru ca
+atunci cand procesul 1 sau 2 se apuca sa trimita rezultatele catre 0 sa le aiba
+deja "la mana", adica sa nu astepte 0 mereu dupa ce 1 ii trimite un rezultat,
+iar sa il ia 1 pe urmatorul de la un worker si dupa sa il transmita. Dupa cum
+am facut, in cel mai rau caz, 0 va sta degeaba ca sa primeasca 1 tot, si apoi
+sa inceapa sa receptioneze de la 1, dar dupa va primi mai repede de la 2 care
+in tot acest timp a lucrat in paralel si are deja stocate rezultatele. In cazul
+in care erau si mai multe procese care urmau sa trimita rezultate, se obtinea
+un castig si mai mare; altfel, fiecare s-ar fi blocat sa trimita pana cand 0
+era liber si dupa ce trimiteau un rezultat, nici macar nu puteau sa il trimita
+imediat pe urmatorul, ci trebuiau sa il astepte de la un worker (acelasi lucru
+pe care l-am zis mai sus despre 1).
+La gandirea asta am incercat sa iau in considerare un caz mai real, in care in
+loc de procese, sa fie vorba de calculatoare dintr-o retea de exemplu.
