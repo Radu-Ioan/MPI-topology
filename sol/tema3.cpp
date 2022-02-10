@@ -16,8 +16,8 @@ int main(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &no_processes);
 
 	if (argc < 2) {
-		cout << "Usage: mpirun -np <numar_procese> ./tema3 "
-			<< "<dimensiune_vector> <eroare_comunicatie>";
+		cout << "Usage: mpirun -np <no_processes> ./tema3 "
+			<< "<array_dim> <communication_error>";
 		return 0;
 	}
 
