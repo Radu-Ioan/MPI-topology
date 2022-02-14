@@ -123,7 +123,8 @@ function check_bonus {
 	local count=0
 	local good=0
 
-	run_test "mpirun --oversubscribe -np $procs ./$(TEMA3) $N 1"
+	run_test "mpirun --oversubscribe -np $procs ./$TEMA3 $N 1"
+
 
 	# verificare topologie
 	procs=$(($procs-1))
@@ -185,13 +186,14 @@ then
 fi
 
 cd $folder
-rm -rf $(TEMA3)
+rm -rf $TEMA3
+
 
 # se compileaza tema
 make clean
 make build
 
-if [ ! -f $(TEMA3) ]
+if [ ! -f $TEMA3 ]
 then
     echo "E: Nu s-a putut compila tema"
     show_score
@@ -209,7 +211,7 @@ do
 	procs=`sed '1q;d' inputs.txt`
 	N=`sed '2q;d' inputs.txt`
 
-	run_test "mpirun --oversubscribe -np $procs ./$(TEMA3) $N 0"
+	run_test "mpirun --oversubscribe -np $procs ./$TEMA3 $N 0"
 
 	# verificare topologie
 	check_topology $procs

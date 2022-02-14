@@ -1,7 +1,7 @@
 CFLAGS = -Wall -std=c++17 -g
 CC = mpic++
 
-BIN = main
+BIN = tema3
 
 EXTRA_SOURCES = $(wildcard processing/*.cpp)
 
