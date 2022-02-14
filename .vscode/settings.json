@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "README": "raw",
-        "fstream": "cpp",
-        "istream": "cpp",
-        "sstream": "cpp",
-        "iostream": "cpp"
-    }
-}
